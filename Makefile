@@ -164,12 +164,21 @@ test_libtheseus: test_libtheseus/src/*
 	done
 
 
-### Demo/test target for building libtheseus
+### Demo/test target for building libtheseus and including it as an application in the Theseus ISO.
 libtheseus: $(THESEUS_CARGO_BIN) $(ROOT_DIR)/libtheseus/Cargo.* $(ROOT_DIR)/libtheseus/src/*
 	@( \
 		cd $(ROOT_DIR)/libtheseus && \
-		$(THESEUS_CARGO_BIN) --input $(DEPS_DIR) build; \
+		cargo clean; \
+		$(THESEUS_CARGO_BIN) --input $(DEPS_DIR) build    && \
+		cd $(ROOT_DIR)/libtheseus/target/$(TARGET)/$(BUILD_MODE)/deps    && \
+		ld -r ./*.o -o libtheseus-merged.o; \
 	)
+	# @for f in ./libtheseus/target/$(TARGET)/$(BUILD_MODE)/deps/libtheseus*.o; do
+	@for f in ./libtheseus/target/$(TARGET)/$(BUILD_MODE)/deps/libtheseus-merged.o; do \
+		cp -vf  $${f}  $(OBJECT_FILES_BUILD_DIR)/`basename $${f} | sed -n -e 's/\(.*\)/$(APP_PREFIX)\1/p'`   2> /dev/null ; \
+	done
+	cargo run --release --manifest-path $(ROOT_DIR)/tools/grub_cfg_generation/Cargo.toml -- $(GRUB_ISOFILES)/modules/ -o $(GRUB_ISOFILES)/boot/grub/grub.cfg
+	$(GRUB_MKRESCUE) -o $(iso) $(GRUB_ISOFILES)  2> /dev/null
 
 
 ### This target builds the `theseus_cargo` tool as a dedicated binary.

@@ -240,6 +240,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fixedvec"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b395ef2adf62bdeefcd1b59ad0dd2225c6c333ec79656ea79ac5285c46d051ea"
+
+[[package]]
 name = "fs_node"
 version = "0.1.0"
 dependencies = [
@@ -391,6 +397,7 @@ dependencies = [
 name = "libtheseus"
 version = "0.1.0"
 dependencies = [
+ "fixedvec",
  "heap",
  "panic_entry",
  "rlibc",

@@ -9,7 +9,7 @@ THESEUS_CARGO_PATH="../tools/theseus_cargo"
 export RUST_BACKTRACE=1
 
 ### Note: the "theseus_cargo" tool must be installed locally instead of invoked via `cargo run` 
-cargo install --force --path=$THESEUS_CARGO_PATH --root=$THESEUS_CARGO_PATH
+cargo --offline install --force --path=$THESEUS_CARGO_PATH --root=$THESEUS_CARGO_PATH
 
 
 ### This is our new auto-config'd cargo command

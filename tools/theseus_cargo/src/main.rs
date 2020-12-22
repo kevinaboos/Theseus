@@ -133,14 +133,15 @@ fn main() -> Result<(), String> {
             }
             Some(RMETA_FILE_EXTENSION) | Some(RLIB_FILE_EXTENSION) => {
                 let libcrate_name = get_plain_crate_name_from_path(&path)?;
-                if libcrate_name.starts_with(RMETA_FILE_PREFIX) {
+                if libcrate_name.starts_with(LIB_FILE_PREFIX) {
                     &libcrate_name[PREFIX_END ..]
                 } else {
                     return Err(format!("Found .rlib or .rmeta file in out_dir that didn't start with 'lib' prefix: {}", path.display()));
                 }
             }
             _ => {
-                return Err(format!("Found file with unexpected extension: {}", path.display()));
+                println!("Ignoring file with irrelevant extension: {}", path.display());
+                continue;
             }
         };
 
@@ -214,11 +215,12 @@ const COMMAND_END:                &str = "`";
 const RUSTC_CMD_START:            &str = "rustc --crate-name";
 const BUILD_SCRIPT_CRATE_NAME:    &str = "build_script_build";
 
-// The format of rmeta file names. 
-const RMETA_FILE_PREFIX:          &str = "lib";
+// The format of rmeta/rlib file names is "lib[CRATENAME]-[HASH].[EXT]"
+// where "EXT" is either ".rmeta" or ".rlib"
+const LIB_FILE_PREFIX:            &str = "lib";
 const RMETA_FILE_EXTENSION:       &str = "rmeta";
 const RLIB_FILE_EXTENSION:        &str = "rlib";
-const PREFIX_END: usize = RMETA_FILE_PREFIX.len();
+const PREFIX_END: usize = LIB_FILE_PREFIX.len();
 
 
 /// Runs the actual cargo build command.
@@ -508,15 +510,24 @@ fn run_rustc_command<P: AsRef<Path>, T: AsRef<Path>, H: AsRef<Path>>(
     // After adding the initial stuff: rustc command, crate name, (optional --edition), and crate source file, 
     // the other arguments are added in the loop below. 
     for (&arg, values) in matches.args.iter() {
-        // println!("Arg {:?} has values:\n\t {:?}", arg, values.vals);
+        println!("Arg {:?} has values:\n\t {:?}", arg, values.vals);
         if ignore_arg(arg) { continue; }
 
         for value in &values.vals {
             let value = value.to_string_lossy();
+            // Skip re-running proc macro crate builds. They should have already been built correctly the first time. 
+            if arg == "--crate-type" && value == "proc-macro" {           
+                println!("\n### Skipping proc-macro crate build");
+                return Ok(false);
+            }
+
             let mut new_value = value.to_string();
 
             if arg == "--extern" {
-                if value.ends_with(RMETA_FILE_EXTENSION) {
+                // An --extern arg could be specifying either a rlib or rmeta file, so we handle both here.
+                let is_rlib  = value.ends_with(RLIB_FILE_EXTENSION);
+                let is_rmeta = value.ends_with(RMETA_FILE_EXTENSION);
+                if is_rmeta || is_rlib {
                     let (extern_crate_name, crate_rmeta_path) = value
                         .find('=')
                         .map(|idx| value.split_at(idx))
@@ -525,7 +536,11 @@ fn run_rustc_command<P: AsRef<Path>, T: AsRef<Path>, H: AsRef<Path>>(
                     println!("Found --extern arg, {:?} --> {:?}", extern_crate_name, crate_rmeta_path);
                     if let Some(extern_crate_name_with_hash) = prebuilt_crates.get(extern_crate_name) {
                         let mut new_crate_path = prebuilt_dir.to_path_buf();
-                        new_crate_path.push(format!("{}{}.{}", RMETA_FILE_PREFIX, extern_crate_name_with_hash, RMETA_FILE_EXTENSION));
+                        new_crate_path.push(format!("{}{}.{}", 
+                            LIB_FILE_PREFIX,
+                            extern_crate_name_with_hash,
+                            if is_rlib { RLIB_FILE_EXTENSION } else { RMETA_FILE_EXTENSION }
+                        ));
                         println!("#### Replacing crate {:?} with prebuilt crate at {}", extern_crate_name, new_crate_path.display());
                         new_value = format!("{}={}", extern_crate_name, new_crate_path.display());
                     }

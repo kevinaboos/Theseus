@@ -9,6 +9,7 @@ build = "../build.rs"
 [dependencies]
 rlibc = "1.0.0"
 # getopts = "0.2.21"
+fixedvec = "0.2.4"
 
 [dependencies.serial_port]
 path = "../kernel/serial_port"
@@ -23,12 +24,10 @@ path = "../kernel/heap"
 # [dependencies.terminal_print]
 # path = "../kernel/terminal_print"
 
-# [lib]
-# crate-type = [ "rlib", "staticlib" ]
-# crate-type = ["rlib", "staticlib", "dylib"]
+[lib]
+crate-type = ["rlib"]
+# crate-type = ["rlib", "staticlib" ]
 # crate-type = ["staticlib"]
-# crate-type = ["dylib"]
-# crate-type = ["cdylib"]
 
 [profile.dev]
 codegen-units = 1

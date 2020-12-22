@@ -14,6 +14,9 @@ extern crate rlibc;
 // #[macro_use] extern crate terminal_print;
 extern crate serial_port;
 
+// testing third-party crate not found in Theseus
+#[macro_use] extern crate fixedvec;
+
 use alloc::vec::Vec;
 use alloc::string::String;
 
@@ -21,6 +24,12 @@ pub mod my_mod;
 
 pub fn main() {
     libtheseus_hello(vec![String::from("hisss"), String::from("there")]);
+
+    let mut preallocated_space = alloc_stack!([usize; 10]);
+    let mut fvec = fixedvec::FixedVec::new(&mut preallocated_space);
+    fvec.push_all(&[1, 2, 3]).unwrap();
+    serial_port::write_fmt(format_args!("\n\nFixedVec: {:?}\n", fvec)).unwrap();
+    
     panic!("hello from my main");
 }
 
